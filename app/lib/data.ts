@@ -11,6 +11,7 @@ import { formatCurrency } from './utils';
 
 export async function fetchRevenue() {
   try {
+    console.log('Database URL:', process.env.POSTGRES_URL);
     // Artificially delay a response for demo purposes.
     // Don't do this in production :)
 
@@ -84,10 +85,7 @@ export async function fetchCardData() {
 }
 
 const ITEMS_PER_PAGE = 6;
-export async function fetchFilteredInvoices(
-  query: string,
-  currentPage: number,
-) {
+export async function fetchFilteredInvoices(query: string, currentPage: number) {
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
   try {
