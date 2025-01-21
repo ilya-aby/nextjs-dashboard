@@ -1,28 +1,23 @@
-import { sql } from '@vercel/postgres';
-import {
-  CustomerField,
-  CustomersTableType,
-  InvoiceForm,
-  InvoicesTable,
-  LatestInvoiceRaw,
-  Revenue,
-} from './definitions';
+import { createPool, sql } from '@vercel/postgres';
+import { CustomerField, CustomersTableType, InvoiceForm, InvoicesTable } from './definitions';
 import { formatCurrency } from './utils';
 
 export async function fetchRevenue() {
   try {
-    console.log('Database URL:', process.env.POSTGRES_URL);
+    const pool = createPool({ connectionString: process.env.POSTGRES_URL });
     // Artificially delay a response for demo purposes.
     // Don't do this in production :)
 
     // console.log('Fetching revenue data...');
     // await new Promise((resolve) => setTimeout(resolve, 3000));
 
-    const data = await sql<Revenue>`SELECT * FROM revenue`;
+    // below line does NOT work because @vercel/postgres doesn't play nice with
+    // Supabase and rewrites our routes to ones that don't work
+    // const data = await sql<Revenue>`SELECT * FROM revenue`;
+    const { rows } = await pool.query('SELECT * FROM revenue');
+    return rows;
 
     // console.log('Data fetch completed after 3 seconds.');
-
-    return data.rows;
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch revenue data.');
@@ -31,14 +26,25 @@ export async function fetchRevenue() {
 
 export async function fetchLatestInvoices() {
   try {
-    const data = await sql<LatestInvoiceRaw>`
-      SELECT invoices.amount, customers.name, customers.image_url, customers.email, invoices.id
+    // const data = await sql<LatestInvoiceRaw>`
+    //   SELECT invoices.amount, customers.name, customers.image_url, customers.email, invoices.id
+    //   FROM invoices
+    //   JOIN customers ON invoices.customer_id = customers.id
+    //   ORDER BY invoices.date DESC
+    //   LIMIT 5`;
+    const pool = createPool({ connectionString: process.env.POSTGRES_URL });
+    const { rows } = await pool.query(
+      `
+      SELECT invoices.amount, customers.name, customers.image_url, customers.email, invoices.id 
       FROM invoices
-      JOIN customers ON invoices.customer_id = customers.id
+      JOIN customers ON invoices.customer_id = customers.id 
       ORDER BY invoices.date DESC
-      LIMIT 5`;
+      LIMIT 5`
+    );
 
-    const latestInvoices = data.rows.map((invoice) => ({
+    console.log(rows);
+
+    const latestInvoices = rows.map((invoice) => ({
       ...invoice,
       amount: formatCurrency(invoice.amount),
     }));
